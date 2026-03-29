@@ -60,14 +60,14 @@ def discover_media_files(
 
     if recursive:
         for root, dirs, files in os.walk(folder_path):
-            # Filter out directories containing 'proxy' in their name
+            # Filter out hidden directories and directories containing 'proxy'
             dirs[:] = [
                 d for d in dirs
-                if "proxy" not in d.lower()
+                if "proxy" not in d.lower() and not d.startswith(".")
             ]
 
             for filename in files:
-                if "proxy" in filename.lower():
+                if "proxy" in filename.lower() or filename.startswith("."):
                     continue
                 filepath = Path(root) / filename
                 if filepath.suffix.lower() in ALL_MEDIA_EXTENSIONS:
@@ -76,7 +76,7 @@ def discover_media_files(
         for filepath in folder_path.iterdir():
             if not filepath.is_file():
                 continue
-            if "proxy" in filepath.name.lower():
+            if "proxy" in filepath.name.lower() or filepath.name.startswith("."):
                 continue
             if filepath.suffix.lower() in ALL_MEDIA_EXTENSIONS:
                 results.append(filepath)
