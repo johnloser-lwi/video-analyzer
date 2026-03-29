@@ -1,6 +1,6 @@
 # Video Analyzer
 
-Analyze a folder of video files and generate a SQLite catalog with technical metadata **and AI-powered content descriptions**. The database is saved alongside your videos, and subsequent runs only process new or modified files.
+Analyze a folder of media files (videos, images, GIFs) and generate a SQLite catalog with technical metadata **and AI-powered content descriptions**. The project includes both a command-line tool for bulk analysis and a rich desktop GUI for exploring and drag-and-dropping your assets.
 
 ## Prerequisites
 
@@ -49,6 +49,28 @@ video-analyzer "D:\My Videos" --no-recursive
 You can also run it as a Python module:
 
 ```bash
+python -m video_analyzer "D:\My Videos"
+```
+
+## GUI Usage
+
+To launch the multi-database search and browse GUI, simply run:
+
+```bash
+video-analyzer-gui
+```
+
+### Running Without Installing
+
+If you prefer not to install the package (or encounter permission issues), you can run both the CLI and the GUI directly from the source code. Just make sure you've installed the dependencies (`pip install -r requirements.txt`).
+
+From the root `video-analyzer` folder, use the `-m` flag to run the modules directly:
+
+```bash
+# Run the GUI
+python -m video_analyzer.gui.app
+
+# Run the CLI
 python -m video_analyzer "D:\My Videos"
 ```
 

@@ -29,6 +29,7 @@ Desktop.ini
 # Video Analyzer — generated databases and exports
 video_catalog.db
 video_catalog.csv
+.thumbnails/
 
 # Test media
 test_media/

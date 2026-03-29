@@ -1,0 +1,1 @@
+"""Video Analyzer GUI package."""
