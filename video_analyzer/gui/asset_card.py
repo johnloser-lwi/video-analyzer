@@ -3,14 +3,14 @@
 import os
 from pathlib import Path
 
-from PyQt5.QtCore import Qt, QUrl, QMimeData, QPoint, QSize, pyqtSignal
+from PyQt5.QtCore import Qt, QUrl, QMimeData, QPoint, QSize, pyqtSignal, QThreadPool
 from PyQt5.QtGui import QPixmap, QDrag
 from PyQt5.QtWidgets import (
     QFrame, QLabel, QVBoxLayout, QHBoxLayout, QSizePolicy,
 )
 
 from .search_engine import SearchResult
-from .thumbnail_cache import generate_thumbnail, get_cached_thumbnail
+from .thumbnail_cache import generate_thumbnail, get_cached_thumbnail, ThumbnailWorker
 
 
 class AssetCard(QFrame):
@@ -103,40 +103,60 @@ class AssetCard(QFrame):
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
 
     def _load_thumbnail(self):
-        """Load thumbnail from cache or generate it."""
+        """Load thumbnail from cache or spawn worker to generate it."""
         db_folder = Path(self.result.db_folder)
         thumb_path = get_cached_thumbnail(self.result.filepath, db_folder)
 
-        if thumb_path is None:
-            thumb_path = generate_thumbnail(
+        if thumb_path and thumb_path.exists():
+            self._apply_thumbnail(thumb_path)
+        else:
+            # Set placeholder
+            self.thumb_label.setText("Generating...")
+            self.thumb_label.setStyleSheet(
+                "color: #5a7a9a; font-size: 12px; font-style: italic; background-color: #1a2332;"
+            )
+
+            # Spawn worker
+            worker = ThumbnailWorker(
                 self.result.filepath,
                 db_folder,
                 self.result.media_type,
             )
+            worker.signals.finished.connect(self._on_thumbnail_ready)
+            QThreadPool.globalInstance().start(worker)
 
-        if thumb_path and thumb_path.exists():
-            pixmap = QPixmap(str(thumb_path))
-            scaled = pixmap.scaled(
-                self.CARD_WIDTH - 12,
-                self.THUMB_HEIGHT,
-                Qt.KeepAspectRatioByExpanding,
-                Qt.SmoothTransformation,
-            )
-            # Center-crop to exact size
-            if scaled.width() > self.CARD_WIDTH - 12 or scaled.height() > self.THUMB_HEIGHT:
-                x = (scaled.width() - (self.CARD_WIDTH - 12)) // 2
-                y = (scaled.height() - self.THUMB_HEIGHT) // 2
-                scaled = scaled.copy(
-                    max(0, x), max(0, y),
-                    self.CARD_WIDTH - 12, self.THUMB_HEIGHT
-                )
-            self.thumb_label.setPixmap(scaled)
-            self._thumb_pixmap = scaled
+    def _on_thumbnail_ready(self, filepath: str, thumb_path: str):
+        # Prevent race conditions if the UI updates out of order
+        if filepath != self.result.filepath:
+            return
+
+        if thumb_path:
+            self.thumb_label.setStyleSheet("")  # clear placeholder style
+            self._apply_thumbnail(Path(thumb_path))
         else:
             self.thumb_label.setText("No Preview")
             self.thumb_label.setStyleSheet(
                 "color: #3a5a7e; font-size: 11px; background-color: #0d1520;"
             )
+
+    def _apply_thumbnail(self, thumb_path: Path):
+        pixmap = QPixmap(str(thumb_path))
+        scaled = pixmap.scaled(
+            self.CARD_WIDTH - 12,
+            self.THUMB_HEIGHT,
+            Qt.KeepAspectRatioByExpanding,
+            Qt.SmoothTransformation,
+        )
+        # Center-crop to exact size
+        if scaled.width() > self.CARD_WIDTH - 12 or scaled.height() > self.THUMB_HEIGHT:
+            x = (scaled.width() - (self.CARD_WIDTH - 12)) // 2
+            y = (scaled.height() - self.THUMB_HEIGHT) // 2
+            scaled = scaled.copy(
+                max(0, x), max(0, y),
+                self.CARD_WIDTH - 12, self.THUMB_HEIGHT
+            )
+        self.thumb_label.setPixmap(scaled)
+        self._thumb_pixmap = scaled
 
     def set_selected(self, selected: bool):
         """Update the visual selection state."""

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from PIL import Image
+from PyQt5.QtCore import QObject, QRunnable, pyqtSignal
 
 THUMB_WIDTH = 240
 THUMB_HEIGHT = 160
@@ -137,3 +138,25 @@ def _generate_image_thumbnail(source: Path, thumb_path: Path) -> Optional[Path]:
     except Exception:
         pass
     return None
+
+
+class WorkerSignals(QObject):
+    """Signals for the thumbnail worker."""
+    finished = pyqtSignal(str, str)  # filepath, thumb_path (empty string if failed)
+
+
+class ThumbnailWorker(QRunnable):
+    """Worker to generate thumbnails asynchronously."""
+    def __init__(self, filepath: str, db_folder: Path, media_type: str = "video"):
+        super().__init__()
+        self.filepath = filepath
+        self.db_folder = db_folder
+        self.media_type = media_type
+        self.signals = WorkerSignals()
+
+    def run(self):
+        thumb_path = generate_thumbnail(self.filepath, self.db_folder, self.media_type)
+        self.signals.finished.emit(
+            self.filepath,
+            str(thumb_path) if thumb_path else ""
+        )

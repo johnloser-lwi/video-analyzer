@@ -3,7 +3,7 @@
 import sys
 
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThreadPool
 
 from .main_window import MainWindow
 from .styles import DARK_THEME
@@ -13,6 +13,9 @@ def main():
     # High-DPI support (works on both macOS and Windows)
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    
+    # Throttle async thumbnail generation
+    QThreadPool.globalInstance().setMaxThreadCount(4)
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
