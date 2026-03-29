@@ -19,7 +19,7 @@ class DetailPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("detailPanel")
-        self.setFixedWidth(300)
+        self.setFixedWidth(330)
 
         # Scroll area for content
         scroll = QScrollArea(self)
